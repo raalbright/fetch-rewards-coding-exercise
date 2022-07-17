@@ -6,6 +6,7 @@ from flask import Flask
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    app.config["DATABASE"] = "dev.db"
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -20,12 +21,9 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    from . import db
     with app.app_context():
-        db.init_db()
-
-    app.teardown_appcontext(db.close_db)
-
+        from . import db
+        db.init_app(app)
 
     from . import transactions
     app.register_blueprint(transactions.blueprint)
