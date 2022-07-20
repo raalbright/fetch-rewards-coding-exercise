@@ -1,7 +1,4 @@
 from datetime import datetime
-import json
-from points import create_app
-
 
 def test_sends_the_point_balance(client):
     response = client.get('/transactions')
@@ -12,8 +9,7 @@ def test_sends_the_point_balance(client):
         {"payer": "UNILEVER", "points": 200}
     ]
 
-    assert json.loads(response.data) == expected
-
+    assert response.json == expected
 
 def test_adds_points(client):
     client.post('/transactions', json={"payer": "DANNON",
@@ -28,7 +24,6 @@ def test_adds_points(client):
     ]
 
     assert response.json == expected
-
 
 def test_spend_points(client):
     response1 = client.post('/transactions/spend', json={"points": 5000})

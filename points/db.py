@@ -1,7 +1,5 @@
 import sqlite3
-
 from flask import current_app, g
-
 
 def get_db():
     def make_dicts(cursor, row):
@@ -16,13 +14,11 @@ def get_db():
 
     return g.db
 
-
 def close_db(e=None):
     db = g.pop('db', None)
 
     if db is not None:
         db.close()
-
 
 def init_db():
     db = get_db()
@@ -31,11 +27,9 @@ def init_db():
         db.executescript(f.read().decode('utf8'))
     db.commit()
 
-
 def init_app(app):
     init_db()
     app.teardown_appcontext(close_db)
-
 
 def query_db(query, args=(), one=False):
     cur = get_db().execute(query, args)

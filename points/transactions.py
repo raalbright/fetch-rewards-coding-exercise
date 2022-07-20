@@ -1,10 +1,7 @@
-from .transaction import Transaction
 from .db import query_db, get_db
 from flask import Blueprint, jsonify, request
-from sqlalchemy import func, text
 
 blueprint = Blueprint('transactions', __name__, url_prefix='/transactions')
-
 
 @blueprint.route("", methods=['GET', 'POST'])
 def get_points_balance():
@@ -20,7 +17,6 @@ def get_points_balance():
         'select t.payer, sum(t.points) as points from transactions t group by t.payer')
 
     return jsonify(points)
-
 
 @blueprint.route("/spend", methods=['POST'])
 def spend_points():
