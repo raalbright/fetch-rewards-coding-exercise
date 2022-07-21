@@ -1,22 +1,24 @@
+import json
 from .db import query_db, get_db
 from flask import Blueprint, jsonify, request
 
 blueprint = Blueprint('transactions', __name__, url_prefix='/transactions')
 
-@blueprint.route("", methods=['GET', 'POST'])
+@blueprint.route("", methods=['GET'])
 def get_points_balance():
-    if request.method == 'POST':
-        db = get_db()
-        cur = db.execute(
-            'insert into transactions (payer, points, timestamp) values (:payer, :points, :timestamp)', request.json)
-        cur.close()
-        db.commit()
-        return "", 200
-
     points = query_db(
         'select t.payer, sum(t.points) as points from transactions t group by t.payer')
 
     return jsonify(points)
+
+@blueprint.route("", methods=['POST'])
+def post_points_balance():
+    db = get_db()
+    cur = db.execute(
+        'insert into transactions (payer, points, timestamp) values (:payer, :points, :timestamp)', request.json)
+    cur.close()
+    db.commit()
+    return "", 200
 
 @blueprint.route("/spend", methods=['POST'])
 def spend_points():
@@ -25,7 +27,7 @@ def spend_points():
     points_to_spend = request.json["points"]
 
     if balance < points_to_spend:
-        return "Insufficient points", 400
+        return jsonify({"error": "Insufficient points"}), 400
 
     entries = query_db(
         'select t.payer, t.points, t.timestamp from transactions t order by timestamp asc')
