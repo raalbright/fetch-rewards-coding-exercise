@@ -13,7 +13,7 @@ def test_sends_the_point_balance(client):
 
 def test_adds_points(client):
     client.post('/transactions', json={"payer": "DANNON",
-                "points": 100, "timestamp": datetime.now()})
+                "points": 100, "timestamp": datetime.now().isoformat()})
 
     response = client.get('/transactions')
 
