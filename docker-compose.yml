@@ -9,10 +9,4 @@ services:
     environment:
       - FLASK_APP=./points/__init__.py
       - FLASK_ENV=development
-  test:
-    build: .
-    command: pytest
-    environment:
-      - FLASK_APP=./points/__init__.py
-      - FLASK_ENV=development
       - PYTHONPATH=.

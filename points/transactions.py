@@ -1,3 +1,4 @@
+from select import select
 from marshmallow import EXCLUDE, ValidationError
 from points.schema import PointsSchema, TransactionSchema
 from .db import query_db, get_db
@@ -10,7 +11,7 @@ def get_points_balance():
     points = query_db(
         'select t.payer, sum(t.points) as points from transactions t group by t.payer')
 
-    return jsonify(points)
+    return jsonify({p["payer"]: p["points"] for p in points})
 
 @blueprint.route("", methods=['POST'])
 def post_points_balance():
@@ -18,7 +19,7 @@ def post_points_balance():
         transaction = TransactionSchema().load(request.json)
         print(transaction)
     except ValidationError as err:
-        return jsonify({ "errors": err }), 400
+        return jsonify({"errors": err}), 400
     else:
         db = get_db()
         cur = db.execute(
@@ -27,6 +28,11 @@ def post_points_balance():
         db.commit()
 
         return "", 200
+
+def points_for_payer(payer):
+    points = query_db('select ifnull(sum(t.points), 0) as points from transactions t where t.payer = ?', [
+                      payer], one=True)['points']
+    return points
 
 @blueprint.route("/spend", methods=['POST'])
 def spend_points():
@@ -42,25 +48,27 @@ def spend_points():
         if balance < points_to_spend:
             return jsonify({"error": "Insufficient points"}), 400
 
-        entries = query_db(
-            'select t.payer, t.points, t.timestamp from transactions t order by timestamp asc')
+        entries = query_db('''
+        select t.payer, t.points
+from transactions t
+where t.payer in (select tt.payer from transactions tt group by tt.payer having sum(tt.points) > 0 )
+order by t.timestamp asc''')
 
         acc = {}
         for entry in entries:
-            if points_to_spend <= 0:
-                break
-
             if entry["payer"] not in acc:
                 acc[entry["payer"]] = 0
 
-            if entry["points"] >= points_to_spend:
-                acc[entry["payer"]] = -points_to_spend
-                points_to_spend = 0
-            elif entry["points"] < points_to_spend:
-                acc[entry["payer"]] = -(abs(acc[entry["payer"]]) + entry["points"])
-                points_to_spend -= entry["points"]
+            value = min(entry["points"], points_to_spend)
+            points_to_spend -= value
+            acc[entry["payer"]] += -value
+
+            if points_to_spend <= 0:
+                break
 
         acc = [{"payer": k, "points": v} for (k, v) in acc.items()]
+
+        print(acc)
 
         db = get_db()
         cur = db.executemany(
